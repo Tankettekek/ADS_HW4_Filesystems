@@ -1,39 +1,40 @@
 #pragma once
 
-typedef enum filetypes { S_IFDIR, S_IFREG, S_IFLNK } ftype;
+typedef struct inode inode;
+typedef union data data;
+
+typedef enum ftype { S_IFDIR, S_IFREG, S_IFLNK } ftype;
 
 typedef struct inode {
-  int ref_count;
-  int byte_count;
-  void *data;
   ftype type;
+  char name[61];
+  int reference_count;
+  int size;
+  void *data;
 } inode;
 
-typedef struct filesystem {
-  int size; // in inodes
-  int ninodes;
-  inode *inode_table;
-} fs;
-
 typedef struct DIR_ENTRY {
-  int inode;
-  ftype type;
-  int name_len; // in bytes
-  char *name;
+  char name[61];
+  inode *inode;
 } DIR_ENTRY;
 
-// FS FUNCTIONS
-void init_fs(fs *filesystem);
-void free_fs(fs *filesystem);
-inode new_root();
+// Create functions
+void create_file(inode *parent, char *name);
+void create_directory(inode *parent, char *name);
+void create_hardlink(inode *parent, char *name, inode *target);
+void create_symlink(inode *parent, char *name, char *path, int size);
 
-// INODE FUNCTIONS
-inode init_inode();
-void free_inode(inode *inode);
-inode copy_inode(inode *src);
+// Delete functions
+void delete_file(inode *root, char *path);
+void delete_directory(inode *root, char *path);
 
-// Directory functions
-DIR_ENTRY *offset(void *DIR, int entry);
-void new_entry(DIR_ENTRY *entry, int inode, ftype type, int name_len,
-               char *name);
-void free_entry(DIR_ENTRY entry);
+// READ/WRITE functions
+inode *resolve_path(inode *root, char *path);
+void read_file(inode *root, char *path);
+void write_file(inode *root, char *path, char *content);
+void append_file(inode *root, char *path, char *content);
+void list_dir(inode *root, char *path);
+
+// DIR_ENTRY helpers
+void create_entry(void *data, char *name, inode *inode);
+void delete_entry(void *data, char *name);
