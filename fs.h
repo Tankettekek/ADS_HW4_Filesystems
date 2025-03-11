@@ -1,40 +1,57 @@
 #pragma once
 
-typedef struct inode inode;
-typedef union data data;
+#include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-typedef enum ftype { S_IFDIR, S_IFREG, S_IFLNK } ftype;
+typedef enum filetype { S_IFDIR, S_IFREG, S_IFLNK } ftype;
 
 typedef struct inode {
-  ftype type;
-  char name[61];
-  int reference_count;
-  int size;
+  uint8_t reference_count;
+  ftype filetype;
+  size_t data_size; // Data Size in Bytes
   void *data;
 } inode;
 
+typedef struct filesystem {
+  inode *root;
+  inode *working_dir;
+} _fs;
+
 typedef struct DIR_ENTRY {
   char name[61];
-  inode *inode;
+  inode *item;
 } DIR_ENTRY;
 
-// Create functions
-void create_file(inode *parent, char *name);
-void create_directory(inode *parent, char *name);
-void create_hardlink(inode *parent, char *name, inode *target);
-void create_symlink(inode *parent, char *name, char *path, int size);
+// Create files
+int create_dir(char *path);
+int create_file(char *path);
+int create_hardlink(char *dest, char *target);
+int create_symlink(char *dest, char *target);
 
-// Delete functions
-void delete_file(inode *root, char *path);
-void delete_directory(inode *root, char *path);
+// Delete file
+int delete_dir(char *path);
+int delete_file(char *path);
+int delete_g(char *path, bool recursive);
 
-// READ/WRITE functions
-inode *resolve_path(inode *root, char *path);
-void read_file(inode *root, char *path);
-void write_file(inode *root, char *path, char *content);
-void append_file(inode *root, char *path, char *content);
-void list_dir(inode *root, char *path);
+// Write data to file
+int write_file(char *path, char *data);
+int append_file(char *path, char *data);
 
-// DIR_ENTRY helpers
-void create_entry(void *data, char *name, inode *inode);
-void delete_entry(void *data, char *name);
+// Add directory entry
+int add_entry(char *path, char *name, inode *target);
+int remove_entry(char *path, char *name);
+int entry_exists(inode *dir, char *name);
+
+// Path utilities
+int resolve_path(char *path, inode *result, bool follow_symlink);
+char *parent_of(char *path);
+char *filename(char *path);
+char *append(char *path, char *path_complement);
+
+// FS Utilities
+_fs init_fs();
+int clear_fs(_fs *filesystem);
+
+extern _fs fs;
