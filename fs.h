@@ -51,7 +51,7 @@ char *filename(char *path);
 char *append(char *path, char *path_complement);
 
 // FS Utilities
-_fs init_fs();
-int clear_fs(_fs *filesystem);
+_fs init_fs(void);
+int clear_fs(void);
 
 extern _fs fs;
