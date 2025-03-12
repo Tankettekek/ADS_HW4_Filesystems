@@ -25,33 +25,33 @@ typedef struct DIR_ENTRY {
 } DIR_ENTRY;
 
 // Create files
-int create_dir(char *path);
-int create_file(char *path);
-int create_hardlink(char *dest, char *target);
-int create_symlink(char *dest, char *target);
+int create_dir(const char *path);
+int create_file(const char *path);
+int create_hardlink(const char *dest, const char *target);
+int create_symlink(const char *dest, const char *target);
 
 // Delete file
-int delete_dir(char *path);
-int delete_file(char *path);
-int delete_g(char *path, bool recursive);
+int delete_dir(const char *path);
+int delete_file(const char *path);
+int delete_g(const char *path, bool recursive);
 
 // Write data to file
-int write_file(char *path, char *data);
-int append_file(char *path, char *data);
+int write_file(const char *path, char *data);
+int append_file(const char *path, char *data);
 
 // Add directory entry
-int add_entry(char *path, char *name, inode *target);
-int remove_entry(char *path, char *name);
-int entry_exists(inode *dir, char *name);
+int add_entry(const char *path, const char *name, inode *target);
+int remove_entry(const char *path, const char *name);
+int entry_exists(inode *dir, const char *name);
 
 // Path utilities
-int resolve_path(char *path, inode *result, bool follow_symlink);
-char *parent_of(char *path);
-char *filename(char *path);
-char *append(char *path, char *path_complement);
+int resolve_path(const char *path, inode **result, bool follow_symlink);
+char *parent_of(const char *path);
+char *filename(const char *path);
+char *append(const char *path, const char *path_complement);
 
 // FS Utilities
-_fs init_fs(void);
+void init_fs(void);
 int clear_fs(void);
 
 extern _fs fs;

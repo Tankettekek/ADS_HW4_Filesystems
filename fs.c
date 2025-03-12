@@ -4,13 +4,15 @@
 
 #include "fs.h"
 
-int create_dir(char *path) {
+_fs fs;
+
+int create_dir(const char *path) {
   // Take the parent of target creation
   char *parent = parent_of(path);
   inode *dir = NULL;
 
   // If the parent of the target does not exist, create it
-  if (resolve_path(parent, dir, true) == ENOENT) {
+  if (resolve_path(parent, &dir, true) == ENOENT) {
     create_dir(parent);
   }
 
@@ -52,12 +54,12 @@ int create_dir(char *path) {
   return 0;
 }
 
-int create_file(char *path) {
+int create_file(const char *path) {
   char *parent = parent_of(path);
   inode *dir = NULL;
 
   // Check wether the promised conditions are completed
-  int err = resolve_path(parent, dir, true);
+  int err = resolve_path(parent, &dir, true);
   if (err != 0) {
     return err;
   }
@@ -91,12 +93,12 @@ int create_file(char *path) {
   return 0;
 }
 
-int create_hardlink(char *dest, char *target) {
+int create_hardlink(const char *dest, const char *target) {
   char *dest_parent = parent_of(dest);
   inode *parent_dir = NULL;
 
   // Destination validity checks
-  int err = resolve_path(dest_parent, parent_dir, true);
+  int err = resolve_path(dest_parent, &parent_dir, true);
   if (err != 0) {
     return err;
   }
@@ -112,7 +114,7 @@ int create_hardlink(char *dest, char *target) {
 
   // Target validity checks
   inode *target_inode = NULL;
-  err = resolve_path(target, target_inode, true);
+  err = resolve_path(target, &target_inode, true);
   if (err != 0) {
     return err;
   }
@@ -130,12 +132,12 @@ int create_hardlink(char *dest, char *target) {
   return 0;
 }
 
-int create_symlink(char *dest, char *target) {
+int create_symlink(const char *dest, const char *target) {
   char *dest_parent = parent_of(dest);
   inode *parent_dir = NULL;
 
   // Destination validity check
-  int err = resolve_path(dest_parent, parent_dir, true);
+  int err = resolve_path(dest_parent, &parent_dir, true);
   if (err != 0) {
     return err;
   }
@@ -171,18 +173,18 @@ int create_symlink(char *dest, char *target) {
   return 0;
 }
 
-int delete_dir(char *path) {
+int delete_dir(const char *path) {
   char *parent_path = parent_of(path);
   inode *parent_inode = NULL;
 
   // Path validation
-  int err = resolve_path(parent_path, parent_inode, false);
+  int err = resolve_path(parent_path, &parent_inode, false);
   if (err != 0) {
     return err;
   }
 
   inode *directory = NULL;
-  err = resolve_path(path, directory, false);
+  err = resolve_path(path, &directory, false);
   if (err != 0) {
     return err;
   }
@@ -218,11 +220,11 @@ int delete_dir(char *path) {
   return 0;
 }
 
-int delete_file(char *path) {
+int delete_file(const char *path) {
   inode *file = NULL;
 
   // Check for potential errors
-  int err = resolve_path(path, file, false);
+  int err = resolve_path(path, &file, false);
   if (err != 0) {
     return err;
   }
@@ -242,11 +244,11 @@ int delete_file(char *path) {
   return 0;
 }
 
-int delete_g(char *path, bool recursive) {
+int delete_g(const char *path, bool recursive) {
   inode *target = NULL;
 
   // Error checking for path validation
-  int err = resolve_path(path, target, true);
+  int err = resolve_path(path, &target, true);
   if (err != 0) {
     return err;
   }
@@ -263,11 +265,11 @@ int delete_g(char *path, bool recursive) {
   return 0;
 }
 
-int write_file(char *path, char *data) {
+int write_file(const char *path, char *data) {
   inode *target = NULL;
 
   // Error checking
-  int err = resolve_path(path, target, true);
+  int err = resolve_path(path, &target, true);
   if (err != 0) {
     return err;
   }
@@ -290,11 +292,11 @@ int write_file(char *path, char *data) {
   return 0;
 }
 
-int append_file(char *path, char *data) {
+int append_file(const char *path, char *data) {
   inode *target = NULL;
 
   // Error checking
-  int err = resolve_path(path, target, true);
+  int err = resolve_path(path, &target, true);
   if (err != 0) {
     return err;
   }
@@ -316,11 +318,11 @@ int append_file(char *path, char *data) {
   return 0;
 }
 
-int add_entry(char *path, char *name, inode *target) {
+int add_entry(const char *path, const char *name, inode *target) {
   inode *dir = NULL;
 
   // Error checking
-  int err = resolve_path(path, dir, true);
+  int err = resolve_path(path, &dir, true);
   if (err != 0) {
     return err;
   }
@@ -350,11 +352,11 @@ int add_entry(char *path, char *name, inode *target) {
   return 0;
 }
 
-int remove_entry(char *path, char *name) {
+int remove_entry(const char *path, const char *name) {
   inode *target = NULL;
 
   // Error checking
-  int err = resolve_path(path, target, true);
+  int err = resolve_path(path, &target, true);
   if (err != 0) {
     return err;
   }
@@ -381,7 +383,7 @@ int remove_entry(char *path, char *name) {
   return 0;
 }
 
-int entry_exists(inode *dir, char *name) {
+int entry_exists(inode *dir, const char *name) {
   // Iterate over entries until found
   for (size_t i = 0; i < dir->data_size / sizeof(DIR_ENTRY); i++) {
     if (strcmp(((DIR_ENTRY *)dir->data)[i].name, name) == 0) {
@@ -393,15 +395,15 @@ int entry_exists(inode *dir, char *name) {
 
 // TODO: Implement the actual symlink logic, because as of now, this only
 // traverses directories.
-int resolve_path(char *path, inode *result, bool follow_symlink) {
+int resolve_path(const char *path, inode **result, bool follow_symlink) {
   // Check whether path begins at root, or if it is a relative path.
   if (path[0] == '/') {
-    result = fs.root;
+    *result = fs.root;
   } else {
-    result = fs.working_dir; // Otherwise set it to the current WD
+    *result = fs.working_dir; // Otherwise set it to the current WD
   }
 
-  char *path_copy = (char *)malloc(strlen(path));
+  char *path_copy = (char *)malloc(strlen(path) + 1);
   if (path_copy == NULL) {
     return ENOMEM;
   }
@@ -413,22 +415,22 @@ int resolve_path(char *path, inode *result, bool follow_symlink) {
     // Check wether current node is a directory
     // Otherwise, path is invalid, since by this point it is evident that there
     // are further tokens
-    if (result->filetype != S_IFDIR) {
+    if ((*result)->filetype != S_IFDIR) {
       return ENOTDIR;
     }
 
     // Figure out wether the next node actually exists.
     // Otherwise return the fact that this directory does not exist
-    int tok_index = entry_exists(result, token);
+    int tok_index = entry_exists(*result, token);
     if (tok_index == -1) {
       return ENOENT;
     }
 
     // Set the new current dir to the inode that is the result
-    result = ((DIR_ENTRY *)result->data)[tok_index].item;
+    *result = ((DIR_ENTRY *)(*result)->data)[tok_index].item;
 
     // Get the new token in order
-    token = strtok(path_copy, "/");
+    token = strtok(NULL, "/");
   }
 
   // If we got to this point, we have resolved the path.
@@ -436,31 +438,42 @@ int resolve_path(char *path, inode *result, bool follow_symlink) {
   return 0;
 }
 
-char *parent_of(char *path) {
+char *parent_of(const char *path) {
   char *last_tok = strrchr(path, '/');
   if (last_tok == NULL) {
     return ".";
   }
 
-  char *copy = (char *)malloc((size_t)(last_tok - path));
+  if (last_tok == path && path[0] == '/') { // Handle root directory
+    char *root_copy = malloc(2); // Allocate space for "/" and null terminator
+    if (root_copy == NULL) {
+      exit(ENOMEM);
+    }
+    root_copy[0] = '/';
+    root_copy[1] = '\0';
+    return root_copy;
+  }
+
+  char *copy = (char *)malloc((size_t)(last_tok - path) + 1);
   if (copy == NULL) {
     exit(ENOMEM);
   }
 
   memcpy(copy, path, (size_t)(last_tok - path));
+  copy[last_tok - path] = '\0';
 
   return copy;
 }
 
-char *filename(char *path) {
+char *filename(const char *path) {
   char *last_tok = strrchr(path, '/');
   if (last_tok) {
     return last_tok + 1;
   }
-  return path;
+  return (char *)path;
 }
 
-char *append(char *path, char *name) {
+char *append(const char *path, const char *name) {
   const size_t len1 = strlen(path);
   const size_t len2 = strlen(name);
   char *result = malloc(len1 + len2 + 1);
@@ -474,11 +487,18 @@ char *append(char *path, char *name) {
   return result;
 }
 
-_fs init_fs(void) {
-  _fs filesystem;
-  filesystem.root = (inode *)malloc(sizeof(inode));
-  filesystem.working_dir = filesystem.root;
-  return filesystem;
+void init_fs(void) {
+  fs.root = (inode *)malloc(sizeof(inode));
+  fs.working_dir = fs.root;
+
+  // Add proper information to root ;
+  fs.root->reference_count = 0;
+  fs.root->filetype = S_IFDIR;
+  fs.root->data_size = 0;
+  fs.root->data = malloc(0);
+
+  add_entry("/", ".", fs.root);
+  add_entry("/", "..", fs.root);
 }
 
 int clear_fs(void) {
@@ -486,5 +506,8 @@ int clear_fs(void) {
   if (err != 0) {
     return err;
   }
+
+  free(fs.root->data);
+  free(fs.root);
   return 0;
 }
