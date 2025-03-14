@@ -1,5 +1,5 @@
-CC = gcc 
-CFLAGS = -Wall -Wextra -pedantic -ggdb3
+CC = clang 
+CFLAGS = -Wall -Wextra -pedantic -ggdb3 -O0
 
 EXECUTABLE = main
 
